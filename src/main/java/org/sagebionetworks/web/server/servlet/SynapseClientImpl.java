@@ -1514,10 +1514,14 @@ public class SynapseClientImpl extends RemoteServiceServlet implements
     @Override
     public String getPlainTextWikiPage(org.sagebionetworks.web.shared.WikiPageKey key)
     			throws RestServiceException, IOException {
-    	String markdown = getMarkdown(key);
+    	return markdown2PlainText(getMarkdown(key));
+    }
+    
+    @Override
+    public String markdown2PlainText(String markdown)
+    			throws RestServiceException, IOException {
     	String html = SynapseMarkdownProcessor.getInstance().markdown2Html(markdown, false, null);
-    	String plainText = Jsoup.clean(html,  "", Whitelist.none(), new Document.OutputSettings().prettyPrint(false));
-    	return plainText;
+    	return Jsoup.clean(html,  "", Whitelist.none(), new Document.OutputSettings().prettyPrint(false));
     }
 
     @Override

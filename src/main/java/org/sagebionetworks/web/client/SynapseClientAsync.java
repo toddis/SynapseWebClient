@@ -123,6 +123,8 @@ public interface SynapseClientAsync {
 
 	public void markdown2Html(String markdown, Boolean isPreview, Boolean isAlpha, String clientHostString, AsyncCallback<String> callback);
 	
+	void markdown2PlainText(String markdown, AsyncCallback<String> callback);
+	
 	void getActivityForEntityVersion(String entityId, Long versionNumber, AsyncCallback<String> callback);
 
 	void getActivityForEntity(String entityId, AsyncCallback<String> callback);
@@ -288,5 +290,7 @@ public interface SynapseClientAsync {
 	void deleteRowsFromTable(String toDelete, AsyncCallback<String> callback);
 
 	void getTableFileHandle(String fileHandlesToFindRowReferenceSet, AsyncCallback<String> callback);
+
+	
 
 }

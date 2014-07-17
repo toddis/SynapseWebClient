@@ -68,20 +68,20 @@ public class EntityListUtil {
 				EntityBundle bundle = null;
 				try {
 					bundle = nodeModelCreator.createEntityBundle(result);
-					// | | | Deprecated entities that do not get description
-					// v v v from wiki should be included in this conditional
-					if (bundle.getEntity() instanceof Locationable) {
-						// Locationable is deprecated — use description field
-						handler.onLoaded(createRecordDisplay(isLoggedIn, bundle, record,
-										synapseJSNIUtils, bundle.getEntity().getDescription()));
-					} else {
-						// Other entities are not deprecated — get description from wiki
-						createDisplayWithWikiDescription(
-								synapseClient, synapseJSNIUtils,
-								isLoggedIn, handler, bundle, record, ref);
-					}		
 				} catch (JSONObjectAdapterException e) {
 					onFailure(new UnknownErrorException(DisplayConstants.ERROR_INCOMPATIBLE_CLIENT_VERSION));
+				}
+				
+				if (bundle.getEntity() instanceof Locationable) {
+					// Locationable is deprecated — use description field
+					createDisplayWithDescriptionField(
+							synapseClient, synapseJSNIUtils,
+							isLoggedIn, handler, bundle, record, ref);
+				} else {
+					// Other entities are not deprecated — get description from wiki
+					createDisplayWithWikiDescription(
+							synapseClient, synapseJSNIUtils,
+							isLoggedIn, handler, bundle, record, ref);
 				}
 			}
 
@@ -97,6 +97,34 @@ public class EntityListUtil {
 			// failsafe
 			synapseClient.getEntityBundle(ref.getTargetId(), mask, callback);
 		}
+	}
+	
+	/**
+	 * Gets a plain text description from the wiki associated with the Entity of the given
+	 * bundle. Creates a record display with that description.
+	 * 
+	 * Note: access modifier public for unit test
+	 */
+	public static void createDisplayWithDescriptionField(
+			final SynapseClientAsync synapseClient, final SynapseJSNIUtils synapseJSNIUtils,
+			final boolean isLoggedIn, final RowLoadedHandler handler,
+			final EntityBundle bundle, final EntityGroupRecord record,
+			final Reference ref) {
+		String markdownDescription = bundle.getEntity().getDescription();
+		synapseClient.markdown2PlainText(markdownDescription, new AsyncCallback<String>() {
+			@Override
+			public void onSuccess(String resultDesc) {
+				try {
+					handler.onLoaded(createRecordDisplay(isLoggedIn, bundle, record, synapseJSNIUtils, resultDesc));
+				} catch (JSONObjectAdapterException e) {
+					onFailure(new UnknownErrorException(DisplayConstants.ERROR_INCOMPATIBLE_CLIENT_VERSION));
+				}
+			}
+			@Override
+			public void onFailure(Throwable caught) {
+				createFailureDisplay(caught, ref, handler);
+			}
+		});
 	}
 	
 	/**
