@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -103,6 +104,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
@@ -123,6 +125,7 @@ import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.SynapseClient;
 import org.sagebionetworks.web.client.transform.JSONEntityFactory;
 import org.sagebionetworks.web.client.transform.JSONEntityFactoryImpl;
+import org.sagebionetworks.web.client.widget.table.v2.TableModelUtils;
 import org.sagebionetworks.web.shared.AccessRequirementsTransport;
 import org.sagebionetworks.web.shared.EntityBundleTransport;
 import org.sagebionetworks.web.shared.EntityConstants;
@@ -187,6 +190,7 @@ public class SynapseClientImpl extends RemoteServiceServlet implements
 	private TokenProvider tokenProvider = this;
 	AdapterFactory adapterFactory = new AdapterFactoryImpl();
 	AutoGenFactory entityFactory = new AutoGenFactory();
+	private TableModelUtils tableModelUtils = new TableModelUtils(adapterFactory);
 
 	private volatile HashMap<String, org.sagebionetworks.web.shared.WikiPageKey> pageName2WikiKeyMap;
 	private volatile HashSet<String> wikiBasedEntities;
@@ -231,8 +235,11 @@ public class SynapseClientImpl extends RemoteServiceServlet implements
 		this.tokenProvider = tokenProvider;
 	}
 
-	public void setMarkdownCache(
-			Cache<MarkdownCacheRequest, String> wikiToMarkdown) {
+	public void setTableModelUtils(TableModelUtils tableModelUtils) {
+		this.tableModelUtils = tableModelUtils;
+	}
+
+	public void setMarkdownCache(Cache<MarkdownCacheRequest, String> wikiToMarkdown) {
 		this.wiki2Markdown = wikiToMarkdown;
 	}
 
@@ -401,7 +408,7 @@ public class SynapseClientImpl extends RemoteServiceServlet implements
 	 */
 
 	// Convert repo-side EntityBundle to serializable EntityBundleTransport
-	private EntityBundleTransport convertBundleToTransport(String entityId,
+	private EntityBundleTransport convertBundleToTransport(String entityId, 
 			EntityBundle eb, int partsMask) throws RestServiceException {
 		EntityBundleTransport ebt = new EntityBundleTransport();
 		try {
@@ -411,25 +418,21 @@ public class SynapseClientImpl extends RemoteServiceServlet implements
 			}
 			if ((EntityBundleTransport.ANNOTATIONS & partsMask) > 0) {
 				Annotations a = eb.getAnnotations();
-				ebt.setAnnotationsJson(EntityFactory
-						.createJSONStringForEntity(a));
+				ebt.setAnnotationsJson(EntityFactory.createJSONStringForEntity(a));
 			}
 			if ((EntityBundleTransport.PERMISSIONS & partsMask) > 0) {
 				UserEntityPermissions uep = eb.getPermissions();
-				ebt.setPermissionsJson(EntityFactory
-						.createJSONStringForEntity(uep));
+				ebt.setPermissionsJson(EntityFactory.createJSONStringForEntity(uep));
 			}
 			if ((EntityBundleTransport.ENTITY_PATH & partsMask) > 0) {
 				EntityPath path = eb.getPath();
-				ebt.setEntityPathJson(EntityFactory
-						.createJSONStringForEntity(path));
+				ebt.setEntityPathJson(EntityFactory.createJSONStringForEntity(path));
 			}
 			if ((EntityBundleTransport.ENTITY_REFERENCEDBY & partsMask) > 0) {
 				List<EntityHeader> rbList = eb.getReferencedBy();
 				PaginatedResults<EntityHeader> rb = new PaginatedResults<EntityHeader>();
 				rb.setResults(rbList);
-				ebt.setEntityReferencedByJson(EntityFactory
-						.createJSONStringForEntity(rb));
+				ebt.setEntityReferencedByJson(EntityFactory.createJSONStringForEntity(rb));
 			}
 			if ((EntityBundleTransport.HAS_CHILDREN & partsMask) > 0) {
 				Boolean hasChildren = eb.getHasChildren();
@@ -447,23 +450,25 @@ public class SynapseClientImpl extends RemoteServiceServlet implements
 				}
 				ebt.setAclJson(EntityFactory.createJSONStringForEntity(acl));
 			}
-			if ((EntityBundleTransport.ACCESS_REQUIREMENTS & partsMask) != 0) {
-				ebt.setAccessRequirementsJson(createJSONStringFromArray(eb
-						.getAccessRequirements()));
+			if ((EntityBundleTransport.ACCESS_REQUIREMENTS & partsMask)!=0) {
+				ebt.setAccessRequirementsJson(createJSONStringFromArray(eb.getAccessRequirements()));
 			}
-			if ((EntityBundleTransport.UNMET_ACCESS_REQUIREMENTS & partsMask) != 0) {
-				ebt.setUnmetAccessRequirementsJson(createJSONStringFromArray(eb
-						.getUnmetAccessRequirements()));
+			if ((EntityBundleTransport.UNMET_ACCESS_REQUIREMENTS & partsMask)!=0) {
+				ebt.setUnmetAccessRequirementsJson(createJSONStringFromArray(eb.getUnmetAccessRequirements()));
 			}
-			if ((EntityBundleTransport.FILE_HANDLES & partsMask) != 0
-					&& eb.getFileHandles() != null)
-				ebt.setFileHandlesJson(createJSONStringFromArray(eb
-						.getFileHandles()));
+			if ((EntityBundleTransport.FILE_HANDLES & partsMask)!=0 && eb.getFileHandles() != null)
+				ebt.setFileHandlesJson(createJSONStringFromArray(eb.getFileHandles()));
+
+			if ((EntityBundleTransport.TABLE_DATA & partsMask) != 0
+					&& eb.getTableBundle() != null) {
+				ebt.setTableData(EntityFactory.createJSONStringForEntity(eb
+						.getTableBundle()));
+			}
 
 			ebt.setIsWikiBasedEntity(getWikiBasedEntities().contains(entityId));
 
 		} catch (JSONObjectAdapterException e) {
-			throw new UnknownErrorException(e.getMessage());
+			throw new UnknownErrorException(e.getMessage());			
 		}
 		return ebt;
 	}
@@ -3495,16 +3500,12 @@ public class SynapseClientImpl extends RemoteServiceServlet implements
 	}
 
 	@Override
-	public String getTableFileHandle(String fileHandlesToFindRowReferenceSet)
-			throws RestServiceException {
+	public String getTableFileHandle(String fileHandlesToFindRowReferenceSet) throws RestServiceException {
 		org.sagebionetworks.client.SynapseClient synapseClient = createSynapseClient();
 		try {
-			RowReferenceSet fileHandlesToFind = new RowReferenceSet(
-					adapterFactory.createNew(fileHandlesToFindRowReferenceSet));
-			TableFileHandleResults results = synapseClient
-					.getFileHandlesFromTable(fileHandlesToFind);
-			return results.writeToJSONObject(adapterFactory.createNew())
-					.toJSONString();
+			RowReferenceSet fileHandlesToFind = new RowReferenceSet(adapterFactory.createNew(fileHandlesToFindRowReferenceSet));
+			TableFileHandleResults results = synapseClient.getFileHandlesFromTable(fileHandlesToFind);
+			return results.writeToJSONObject(adapterFactory.createNew()).toJSONString();
 		} catch (SynapseException e) {
 			throw ExceptionUtil.convertSynapseException(e);
 		} catch (JSONObjectAdapterException e) {
@@ -3512,4 +3513,50 @@ public class SynapseClientImpl extends RemoteServiceServlet implements
 		}
 	}
 
+	/**
+	 * Helper to get the entity bundle of a table entity.
+	 * 
+	 * @param synapseClient
+	 * @param tableId
+	 * @return
+	 * @throws SynapseException
+	 * @throws RestServiceException
+	 */
+	private EntityBundleTransport getTableEntityBundle(
+			org.sagebionetworks.client.SynapseClient synapseClient,
+			String tableId) throws SynapseException, RestServiceException {
+		int partsMask = EntityBundle.ENTITY + EntityBundle.TABLE_DATA;
+		EntityBundle bundle = synapseClient.getEntityBundle(tableId, partsMask);
+		return convertBundleToTransport(tableId, bundle, partsMask);
+	}
+
+	@Override
+	public List<String> setTableSchema(String tableId, List<String> schemaJSON)
+			throws RestServiceException {
+		org.sagebionetworks.client.SynapseClient synapseClient = createSynapseClient();
+		try {
+			List<ColumnModel> models = tableModelUtils
+					.columnModelFromJSON(schemaJSON);
+			// Create any models that do not have an ID
+			List<String> newSchema = new LinkedList<String>();
+			for (ColumnModel m : models) {
+				if (m.getId() == null) {
+					ColumnModel clone = synapseClient.createColumnModel(m);
+					m.setId(clone.getId());
+				}
+				newSchema.add(m.getId());
+			}
+			// Get the table
+			TableEntity table = synapseClient.getEntity(tableId,
+					TableEntity.class);
+			table.setColumnIds(newSchema);
+			table = synapseClient.putEntity(table);
+			// Return the models
+			return tableModelUtils.toJSONList(models);
+		} catch (SynapseException e) {
+			throw ExceptionUtil.convertSynapseException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new UnknownErrorException(e.getMessage());
+		}
+	}
 }
