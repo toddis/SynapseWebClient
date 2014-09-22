@@ -171,19 +171,6 @@ public class Uploader implements UploaderView.Presenter, SynapseWidgetPresenter,
 		view.triggerUpload();
 	}
 	
-	/**
-	 * For uploading files from native JavaScript.
-	 * @param jsFileNames Array of file names to be uploaded.
-	 */
-	public void uploadFiles(JsArrayString jsFileNames) {
-		int length = jsFileNames.length();
-		fileNames = new String[length];
-		for (int i = 0; i < length; i++) {
-			fileNames[i] = jsFileNames.get(i);
-		}
-		uploadFiles();
-	}
-	
 	@Override
 	public void handleUploads() {
 		if (fileNames == null) {

@@ -303,12 +303,9 @@ public class SynapseJSNIUtilsImpl implements SynapseJSNIUtils {
 				if (event.target.id == @org.sagebionetworks.web.client.SynapseJSNIUtilsImpl::FILE_FIELD_ID) {
 					event.target.className = event.target.className.replace(dropStyleName, '');
   					var files = event.dataTransfer.files;
-					var fileNames = [];
-					for (var i = 0; i < files.length; i++) {
-						fileNames[i] = files[i].name;
-					}
-					// UPLOADER.uploadFiles(fileNames);
-					@org.sagebionetworks.web.client.SynapseJSNIUtilsImpl::UPLOADER.@org.sagebionetworks.web.client.widget.entity.download.Uploader::uploadFiles(Lcom/google/gwt/core/client/JsArrayString;)(fileNames);
+					$doc.getElementById(@org.sagebionetworks.web.client.SynapseJSNIUtilsImpl::FILE_FIELD_ID).files = files;
+					// UPLOADER.uploadFiles();
+					@org.sagebionetworks.web.client.SynapseJSNIUtilsImpl::UPLOADER.@org.sagebionetworks.web.client.widget.entity.download.Uploader::uploadFiles()();
 				}
 			}, false);
 		
