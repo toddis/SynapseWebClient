@@ -3,6 +3,8 @@ package org.sagebionetworks.web.client.widget.entity.browse;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.web.client.SynapseView;
 import org.sagebionetworks.web.client.widget.entity.EntityTreeItem;
 
@@ -18,6 +20,12 @@ public interface EntityTreeBrowserView extends IsWidget, SynapseView {
 	 */
 	void setPresenter(Presenter presenter);
 
+	/**
+	 * 
+	 * @param rootEntities entity query results with which to make root level nodes for in the tree
+	 */
+	void setRootEntities(EntityQueryResults rootEntities);
+	
 	/**
 	 * 
 	 * @param rootEntities list of entities to make root level nodes for in the tree
@@ -37,30 +45,41 @@ public interface EntityTreeBrowserView extends IsWidget, SynapseView {
 	void makeSelectable();
 	
 	/**
-	 * Makes a TreeItem and places it in the tree. Gives the created item a "dummy"
+	 * Places the given child item in the tree. Gives the created item a "dummy"
 	 * child so that the item can be expanded.
-	 * @param childToCreate The EntityHeader who's information will be used to create a
-	 * 					 	new tree item and place in the tree.
-	 * @param parent The EntityHeader that corresponds to the tree item the the created
-	 * 				 child will become the child of. Parameter ignored if isRootItem.
-	 * @param isRootItem true if the childToCreate is a root item, false otherwise.
+	 * @param child The EntityTreeItem to be placed in the tree.
+	 * @param parent The EntityTreeItem that will be the parent of the inserted
+	 *               child item. If parent == null, then the item
+	 * 				 will be placed at the root of the tree.
 	 */
-	void createAndPlaceTreeItem(EntityHeader childToCreate, EntityTreeItem parent, boolean isRootItem);
+	void placeTreeItem(EntityTreeItem child, EntityTreeItem parent);
 	
 	/**
-	 * Makes a TreeItem and places it in the root of the tree.
-	 * 
-	 * @param toCreate The EntityHeader who's information will be used to create
-	 * 				   a new tree item and place in the tree.
+	 * Makes a tree item from the given EntityQueryResult and places it in the tree.
+	 * @param header The EntityQueryResult who's information will be used to create
+	 *               the tree item to be placed.
+	 * @param parent The EntityTreeItem that will be the parent of the inserted
+	 *               child item. If parent == null, then the item
+	 * 				 will be placed at the root of the tree.
 	 */
-	void createAndPlaceRootTreeItem(EntityHeader toCreate);
-		
+	public void createAndPlaceTreeItem(EntityQueryResult header, EntityTreeItem parent);
+	
+	/**
+	 * Makes a tree item from the given EntityHeader and places it in the tree.
+	 * @param header The EntityHeader who's information will be used to create
+	 *               the tree item to be placed.
+	 * @param parent The EntityTreeItem that will be the parent of the inserted
+	 *               child item. If parent == null, then the item
+	 * 				 will be placed at the root of the tree.
+	 */
+	public void createAndPlaceTreeItem(EntityHeader header, EntityTreeItem parent);
+	
 	/**
 	 * Presenter interface
 	 */
 	public interface Presenter {
 
-		void getFolderChildren(String entityId, AsyncCallback<List<EntityHeader>> asyncCallback);
+		void getFolderChildren(String entityId, AsyncCallback<EntityQueryResults> asyncCallback);
 
 		void setSelection(String id);
 

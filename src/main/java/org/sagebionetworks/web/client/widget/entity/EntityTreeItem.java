@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.widget.entity;
 
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
 import org.sagebionetworks.web.client.PortalGinInjector;
 import org.sagebionetworks.web.client.widget.SynapseWidgetPresenter;
 
@@ -22,6 +23,15 @@ public class EntityTreeItem implements IsTreeItem, SynapseWidgetPresenter {
 	
 	public void configure(EntityHeader header, boolean isRootItem) {
 		entityBadge.configure(header);
+		configureTreeItemAndStyle(isRootItem);
+	}
+	
+	public void configure(EntityQueryResult result, boolean isRootItem) {
+		entityBadge.configure(result);
+		configureTreeItemAndStyle(isRootItem);
+	}
+	
+	private void configureTreeItemAndStyle(boolean isRootItem) {
 		entityBadge.asWidget().addStyleName("padding-bottom-4-imp");
 		treeItem = new TreeItem(asWidget());
 		if (isRootItem)

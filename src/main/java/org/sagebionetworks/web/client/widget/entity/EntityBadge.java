@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client.widget.entity;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
 import org.sagebionetworks.schema.adapter.AdapterFactory;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.web.client.DisplayConstants;
@@ -34,6 +35,7 @@ public class EntityBadge implements EntityBadgeView.Presenter, SynapseWidgetPres
 	private ClientCache clientCache;
 	private GlobalApplicationState globalAppState;
 	private EntityHeader entityHeader;
+	private EntityQueryResult entityQueryResult;
 	
 	@Inject
 	public EntityBadge(EntityBadgeView view, 
@@ -56,6 +58,12 @@ public class EntityBadge implements EntityBadgeView.Presenter, SynapseWidgetPres
 		view.setEntity(header);
 	}
 	
+	public void configure(EntityQueryResult entityQueryResult) {
+		this.entityQueryResult = entityQueryResult;
+		this.entityHeader = createEntityHeaderFromQueryResult(entityQueryResult);
+		view.setEntity(entityHeader);
+	}
+	
 	@SuppressWarnings("unchecked")
 	public void clearState() {
 	}
@@ -72,7 +80,21 @@ public class EntityBadge implements EntityBadgeView.Presenter, SynapseWidgetPres
 	
 	@Override
 	public void getInfo(String entityId, final AsyncCallback<KeyValueDisplay<String>> callback) {
-		getInfoEntity(entityId, synapseClient, adapterFactory, clientCache, callback);
+		if (entityQueryResult != null) {
+			// Do not need to fetch entity.
+			UserBadge.getUserProfile(entityQueryResult.getModifiedByPrincipalId().toString(), adapterFactory, synapseClient, clientCache, new AsyncCallback<UserProfile>() {
+				@Override
+				public void onSuccess(UserProfile profile) {
+					callback.onSuccess(ProvUtils.entityQueryResultToKeyValueDisplay(entityQueryResult, DisplayUtils.getDisplayName(profile), false));		
+				}
+				@Override
+				public void onFailure(Throwable caught) {
+					callback.onFailure(caught);
+				}
+			});
+		} else {
+			getInfoEntity(entityId, synapseClient, adapterFactory, clientCache, callback);
+		}
 	}
 	
 	private static void getInfoEntity(String entityId, 
@@ -132,6 +154,19 @@ public class EntityBadge implements EntityBadgeView.Presenter, SynapseWidgetPres
 	
 	public void setClickHandler(ClickHandler handler) {
 		view.setClickHandler(handler);
+	}
+	
+	/*
+	 * Private Methods
+	 */
+	
+	private EntityHeader createEntityHeaderFromQueryResult(EntityQueryResult result) {
+		EntityHeader header = new EntityHeader();
+		header.setId(result.getId());
+		header.setName(result.getName());
+		header.setType(result.getEntityType());
+		header.setVersionNumber(result.getVersionNumber());
+		return header;
 	}
 
 }

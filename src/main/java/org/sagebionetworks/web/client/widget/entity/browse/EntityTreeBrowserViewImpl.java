@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
@@ -109,15 +111,37 @@ public class EntityTreeBrowserViewImpl extends FlowPanel implements EntityTreeBr
 		clear();
 		
 		if(rootEntities == null) rootEntities = new ArrayList<EntityHeader>();
-		if(rootEntities.size() == 0) {
+		if(rootEntities.isEmpty()) {
 			TreeItem emptyItem = new TreeItem(new HTMLPanel("<div>" + EMPTY_DISPLAY + "</div>"));
 			emptyItem.addStyleName("entityTreeItem-font");
 			entityTree.addItem(emptyItem);
 		} else {
 			for (final EntityHeader header : rootEntities) {
-				createAndPlaceRootTreeItem(header);
+				createAndPlaceTreeItem(header, null);
 			}
 		}
+	}
+	
+	@Override
+	public void setRootEntities(EntityQueryResults entities) {
+		clear();
+		List<EntityQueryResult> rootEntities;
+		if (entities == null || entities.getEntities() == null) {
+			rootEntities = new ArrayList<EntityQueryResult>();
+		} else {
+			rootEntities = entities.getEntities();
+		}
+		
+		if (rootEntities.isEmpty()) {
+			TreeItem emptyItem = new TreeItem(new HTMLPanel("<div>" + EMPTY_DISPLAY + "</div>"));
+			emptyItem.addStyleName("entityTreeItem-font");
+			entityTree.addItem(emptyItem);
+		} else {
+			for (final EntityQueryResult header : rootEntities) {
+				createAndPlaceTreeItem(header, null);
+			}
+		}
+		
 	}
 	
 	@Override
@@ -140,43 +164,48 @@ public class EntityTreeBrowserViewImpl extends FlowPanel implements EntityTreeBr
 	}
 	
 	@Override
-	public void createAndPlaceTreeItem(EntityHeader childToCreate, EntityTreeItem parent, boolean isRootItem) {
-		if (parent == null && !isRootItem) throw new IllegalArgumentException("Must specify a parent entity under which to place the created child in the tree.");
-		
+	public void createAndPlaceTreeItem(EntityHeader header, EntityTreeItem parent) {
+		EntityTreeItem childItem = ginInjector.getEntityTreeItemWidget();
+		childItem.configure(header, parent == null);
+		placeTreeItem(childItem, parent);
+	}
+	
+	@Override
+	public void createAndPlaceTreeItem(EntityQueryResult header, EntityTreeItem parent) {
+		EntityTreeItem childItem = ginInjector.getEntityTreeItemWidget();
+		childItem.configure(header, parent == null);
+		placeTreeItem(childItem, parent);
+	}
+	
+	@Override
+	public void placeTreeItem(final EntityTreeItem child, EntityTreeItem parent) {
 		// Make tree item.
-		final EntityTreeItem childItem = ginInjector.getEntityTreeItemWidget();
 		if (isSelectable) {
 			// Add select functionality.
-			childItem.setClickHandler(new ClickHandler() {
+			child.setClickHandler(new ClickHandler() {
 
 				@Override
 				public void onClick(ClickEvent event) {
-					selectEntity(childItem);
+					selectEntity(child);
 				}
 				
 			});
 			
 		}
-		childItem.configure(childToCreate, isRootItem);
 		
 		// Update fields.
-		treeItem2entityTreeItem.put(childItem.asTreeItem(), childItem);
-		header2entityTreeItem.put(childToCreate,  childItem);
+		treeItem2entityTreeItem.put(child.asTreeItem(), child);
+		header2entityTreeItem.put(child.getHeader(),  child);
 				
 		// Add dummy item to childItem to make expandable.
-		childItem.asTreeItem().addItem(createDummyItem());
+		child.asTreeItem().addItem(createDummyItem());
 		
 		// Place the created child in the tree as the child of the given parent entity.
-		if (isRootItem) {
-			entityTree.addItem(childItem);
+		if (parent == null) {
+			entityTree.addItem(child);
 		} else {
-			parent.asTreeItem().addItem(childItem);
+			parent.asTreeItem().addItem(child);
 		}
-	}
-	
-	@Override
-	public void createAndPlaceRootTreeItem(EntityHeader toCreate) {
-		createAndPlaceTreeItem(toCreate, null, true);
 	}
 	
 	
@@ -228,5 +257,5 @@ public class EntityTreeBrowserViewImpl extends FlowPanel implements EntityTreeBr
 	public interface EntityTreeImageBundle extends ClientBundle, ClientBundleWithLookup {
 		Tree.Resources DEFAULT_RESOURCES = GWT.create(Tree.Resources.class);
 	}
-	
+
 }

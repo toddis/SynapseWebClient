@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.model.provenance.UsedEntity;
@@ -208,6 +209,37 @@ public class ProvUtils {
 		
 		order.add("Description");
 		map.put("Description", entity.getDescription());		
+		
+		return new KeyValueDisplay<String>(map, order);
+	}
+	
+	public static KeyValueDisplay<String> entityQueryResultToKeyValueDisplay(EntityQueryResult entity, String modifiedBy) {
+		return entityQueryResultToKeyValueDisplay(entity, modifiedBy, true);
+	}
+	
+	public static KeyValueDisplay<String> entityQueryResultToKeyValueDisplay(EntityQueryResult entity, String modifiedBy, boolean includeName) {
+		Map<String,String> map = new HashMap<String, String>();
+		List<String> order = new ArrayList<String>();
+		
+		order.add("ID");
+		map.put("ID", entity.getId());
+		
+		if (includeName) {
+			order.add("Name");
+			map.put("Name", entity.getName());
+		}
+		
+//		if(entity instanceof Versionable) {
+//			order.add("Version");
+//			map.put("Version", DisplayUtils.getVersionDisplay((Versionable)entity));
+//		}
+		order.add("Modified By");
+		map.put("Modified By", modifiedBy);
+		
+		order.add("Modified On");
+
+		if (entity.getModifiedOn() != null)
+			map.put("Modified On", DisplayUtils.converDataToPrettyString(entity.getModifiedOn()));
 		
 		return new KeyValueDisplay<String>(map, order);
 	}
