@@ -149,57 +149,16 @@ public class EntityTreeBrowser implements EntityTreeBrowserView.Presenter, Synap
 	@Override
 	public void getFolderChildren(String entityId, final AsyncCallback<EntityQueryResults> asyncCallback) {
 		EntityQuery childrenQuery = createGetChildrenQuery(entityId);
-		List<EntityHeader> headers = new ArrayList<EntityHeader>();		
 		
 		// NOTE: this is fragile, but there doesn't seem to be a way around querying by nodeType. 
 		// a query on concreteType!=org...TableEntity eliminates nodes who do not have concreteType defined
 		final String TABLE_ENTITY_NODE_TYPE_ID = "17"; 
 		
-//		searchService.searchEntities("entity", Arrays
-//				.asList(new WhereCondition[] { 
-//						new WhereCondition("parentId", WhereOperator.EQUALS, entityId),
-//						new WhereCondition(WebConstants.NODE_TYPE_KEY, WhereOperator.NOT_EQUALS, TABLE_ENTITY_NODE_TYPE_ID)
-//						}), 1, MAX_FOLDER_LIMIT, null,
-//				false, new AsyncCallback<List<String>>() {
-//				@Override
-//				public void onSuccess(List<String> result) {
-//					List<EntityHeader> headers = new ArrayList<EntityHeader>();
-//					for(String entityHeaderJson : result) {
-//						try {
-//							headers.add(new EntityHeader(adapterFactory.createNew(entityHeaderJson)));
-//						} catch (JSONObjectAdapterException e) {
-//							onFailure(new UnknownErrorException(DisplayConstants.ERROR_INCOMPATIBLE_CLIENT_VERSION));
-//						}
-//					}
-//					asyncCallback.onSuccess(headers);
-//				}
-//				@Override
-//				public void onFailure(Throwable caught) {
-//					DisplayUtils.handleServiceException(caught, globalApplicationState, authenticationController.isLoggedIn(), view);				
-//					asyncCallback.onFailure(caught);
-//				}
-//			});	
-		
+		// TODO: Query by node type?
 		synapseClient.executeEntityQuery(childrenQuery, new AsyncCallback<EntityQueryResults>() {
 				@Override
 				public void onSuccess(EntityQueryResults results) {
-//					List<EntityQueryResult> results = result.getEntities();
 					asyncCallback.onSuccess(results);
-					
-					// TODO: Entity header stuff just to test query. Should eliminate that.
-					//List<EntityHeader> headers = new LinkedList<EntityHeader>();
-					
-					
-//					for(EntityQueryResult entity : results) {
-//						EntityHeader header = new EntityHeader();
-//						// TODO: Get rid of this.
-//						header.setId(entity.getId());
-//						header.setName(entity.getName());
-//						header.setType(entity.getEntityType());
-//						header.setVersionNumber(entity.getVersionNumber());
-//						headers.add(header);
-//					}
-//					asyncCallback.onSuccess(headers);
 				}
 				@Override
 				public void onFailure(Throwable caught) {

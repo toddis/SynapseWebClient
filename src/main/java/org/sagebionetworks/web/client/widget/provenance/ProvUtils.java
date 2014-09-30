@@ -229,10 +229,6 @@ public class ProvUtils {
 			map.put("Name", entity.getName());
 		}
 		
-//		if(entity instanceof Versionable) {
-//			order.add("Version");
-//			map.put("Version", DisplayUtils.getVersionDisplay((Versionable)entity));
-//		}
 		order.add("Modified By");
 		map.put("Modified By", modifiedBy);
 		
