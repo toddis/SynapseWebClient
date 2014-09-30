@@ -120,7 +120,7 @@ public class EntityBadgeViewImpl extends Composite implements EntityBadgeView {
 	
 	public void showPopover(final Anchor anchor, final String entityId, final String entityName) {
 		if (!isPopoverInitialized) {
-			presenter.getInfo(entityId, new AsyncCallback<KeyValueDisplay<String>>() {						
+			presenter.getInfo(entityId, new AsyncCallback<KeyValueDisplay<String>>() {	// TODO: Why does this hang for so long on second call??
 				@Override
 				public void onSuccess(KeyValueDisplay<String> result) {
 					renderPopover(ProvViewUtil.createEntityPopoverHtml(result).asString());
